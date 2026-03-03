@@ -390,25 +390,100 @@
     margin-top: 0.3rem;
   }
 
-  /* Goals */
-  .goals-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
-
-  .goal-input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
   .goal-label {
     font-family: 'DM Mono', monospace;
     font-size: 0.7rem;
     letter-spacing: 0.15em;
     text-transform: uppercase;
     color: var(--muted);
+  }
+
+  .cadence-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 700px) { .cadence-grid { grid-template-columns: 1fr; } }
+
+  .cadence-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.25rem;
+    position: relative;
+  }
+
+  .cadence-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .plank-cadence::before { background: var(--plank); }
+  .pushup-cadence::before { background: var(--pushup); }
+
+  .cadence-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .cadence-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .cadence-current-goal {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.1rem;
+    color: var(--accent);
+  }
+
+  .cadence-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .cadence-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .cadence-input {
+    width: 100% !important;
+    font-size: 0.95rem !important;
+    padding: 0.5rem 0.6rem !important;
+  }
+
+  .cadence-unit {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .next-goal-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+
+  .next-goal-hint span {
+    color: var(--accent);
+  }
+
+  .goal-met-btn {
+    font-size: 0.8rem !important;
+    letter-spacing: 0.15em;
   }
 
   .section-title {
@@ -527,27 +602,75 @@
           <input type="number" class="number-input" id="pushup-input" placeholder="reps" min="1" max="999">
           <button class="btn btn-pushup" onclick="logPushups()">Log Set</button>
         </div>
+        <button class="btn btn-pushup goal-met-btn" onclick="logGoalMet()" style="margin-top:0.6rem;width:100%">✓ Goal Met</button>
       </div>
 
     </div>
 
-    <!-- Goals -->
+    <!-- Progressive Cadence -->
     <div>
-      <div class="section-title">Daily Goals</div>
-      <div class="goals-grid">
-        <div class="goal-input-group">
-          <label class="goal-label" style="color:var(--plank)">Plank Goal (seconds)</label>
-          <div style="display:flex;gap:0.5rem;align-items:center">
-            <input type="number" class="number-input" id="plank-goal-input" value="60" min="5" max="600" style="width:90px">
-            <button class="btn btn-muted" onclick="saveGoals()">Save</button>
+      <div class="section-title">Progressive Overload</div>
+      <div class="cadence-grid">
+
+        <!-- Plank cadence -->
+        <div class="cadence-card plank-cadence">
+          <div class="cadence-header">
+            <span class="cadence-title" style="color:var(--plank)">⬛ Plank</span>
+            <span class="cadence-current-goal" id="plank-cadence-display"></span>
+          </div>
+          <div class="cadence-row">
+            <div class="cadence-field">
+              <label class="goal-label">Starting goal (sec)</label>
+              <input type="number" class="number-input cadence-input" id="plank-start" min="1" max="3600">
+            </div>
+            <div class="cadence-field">
+              <label class="goal-label">Increase every</label>
+              <div style="display:flex;align-items:center;gap:0.4rem">
+                <input type="number" class="number-input cadence-input" id="plank-every" min="1" max="100">
+                <span class="cadence-unit">sessions</span>
+              </div>
+            </div>
+            <div class="cadence-field">
+              <label class="goal-label">Increase by</label>
+              <div style="display:flex;align-items:center;gap:0.4rem">
+                <input type="number" class="number-input cadence-input" id="plank-by" min="1" max="300">
+                <span class="cadence-unit">sec</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="goal-input-group">
-          <label class="goal-label" style="color:var(--pushup)">Push-up Goal (reps)</label>
-          <div style="display:flex;gap:0.5rem;align-items:center">
-            <input type="number" class="number-input" id="pushup-goal-input" value="50" min="1" max="999">
+
+        <!-- Push-up cadence -->
+        <div class="cadence-card pushup-cadence">
+          <div class="cadence-header">
+            <span class="cadence-title" style="color:var(--pushup)">💪 Push-ups</span>
+            <span class="cadence-current-goal" id="pushup-cadence-display"></span>
+          </div>
+          <div class="cadence-row">
+            <div class="cadence-field">
+              <label class="goal-label">Starting goal (reps)</label>
+              <input type="number" class="number-input cadence-input" id="pushup-start" min="1" max="999">
+            </div>
+            <div class="cadence-field">
+              <label class="goal-label">Increase every</label>
+              <div style="display:flex;align-items:center;gap:0.4rem">
+                <input type="number" class="number-input cadence-input" id="pushup-every" min="1" max="100">
+                <span class="cadence-unit">sessions</span>
+              </div>
+            </div>
+            <div class="cadence-field">
+              <label class="goal-label">Increase by</label>
+              <div style="display:flex;align-items:center;gap:0.4rem">
+                <input type="number" class="number-input cadence-input" id="pushup-by" min="1" max="100">
+                <span class="cadence-unit">reps</span>
+              </div>
+            </div>
           </div>
         </div>
+
+      </div>
+      <div style="margin-top:1rem;display:flex;justify-content:flex-end">
+        <button class="btn btn-accent" onclick="saveCadence()">Save Cadence</button>
       </div>
     </div>
 
@@ -571,9 +694,27 @@
   let timerInterval = null;
   let timerSeconds = 0;
   let isRunning = false;
-  let data = JSON.parse(localStorage.getItem('ironcore') || '{"log":[],"goals":{"plank":60,"pushup":50},"todayPushups":0,"todayDate":""}');
+  const DEFAULT_DATA = {
+    log: [],
+    todayPushups: 0,
+    todayDate: '',
+    cadence: {
+      plank:  { start: 60,  every: 5, by: 5  },
+      pushup: { start: 50,  every: 5, by: 5  }
+    }
+  };
+  let data = JSON.parse(localStorage.getItem('ironcore') || 'null') || DEFAULT_DATA;
+  // Migrate old saves that lack cadence
+  if (!data.cadence) {
+    data.cadence = DEFAULT_DATA.cadence;
+    if (data.goals) {
+      data.cadence.plank.start  = data.goals.plank  || 60;
+      data.cadence.pushup.start = data.goals.pushup || 50;
+    }
+    save();
+  }
 
-  // Fix today's pushup count reset
+  // Reset today's push-ups if it's a new day
   const today = new Date().toDateString();
   if (data.todayDate !== today) {
     data.todayPushups = 0;
@@ -583,6 +724,45 @@
 
   function save() {
     localStorage.setItem('ironcore', JSON.stringify(data));
+  }
+
+  // ── Cadence helpers ──────────────────────────────────────────────
+  function sessionCount(type) {
+    return data.log.filter(e => e.type === type).length;
+  }
+
+  function computeGoal(type) {
+    const c = data.cadence[type];
+    const sessions = sessionCount(type);
+    const steps = Math.floor(sessions / c.every);
+    return c.start + steps * c.by;
+  }
+
+  function updateCadenceDisplays() {
+    const pg = computeGoal('plank');
+    const ug = computeGoal('pushup');
+    document.getElementById('plank-cadence-display').textContent  = 'Current goal: ' + formatTime(pg);
+    document.getElementById('pushup-cadence-display').textContent = 'Current goal: ' + ug + ' reps';
+    // update progress bars / labels on the cards
+    document.getElementById('plank-goal-label').textContent  = formatTime(pg);
+    document.getElementById('pushup-goal-label').textContent = ug;
+    updatePlankProgress();
+    updatePushupDisplay();
+  }
+
+  function saveCadence() {
+    const ps  = parseInt(document.getElementById('plank-start').value);
+    const pe  = parseInt(document.getElementById('plank-every').value);
+    const pb  = parseInt(document.getElementById('plank-by').value);
+    const us  = parseInt(document.getElementById('pushup-start').value);
+    const ue  = parseInt(document.getElementById('pushup-every').value);
+    const ub  = parseInt(document.getElementById('pushup-by').value);
+    if (!ps||!pe||!pb||!us||!ue||!ub) { showToast('Fill in all cadence fields'); return; }
+    data.cadence.plank  = { start: ps, every: pe, by: pb };
+    data.cadence.pushup = { start: us, every: ue, by: ub };
+    save();
+    updateCadenceDisplays();
+    showToast('Cadence saved!');
   }
 
   function switchTab(tab) {
@@ -612,6 +792,7 @@
         logEntry('plank', timerSeconds);
         showToast(`Plank logged: ${formatTime(timerSeconds)}`);
         updateStats();
+        updateCadenceDisplays();
       }
     }
   }
@@ -634,7 +815,7 @@
   }
 
   function updatePlankProgress() {
-    const goal = data.goals.plank;
+    const goal = computeGoal('plank');
     const pct = Math.min(100, Math.round((timerSeconds / goal) * 100));
     document.getElementById('plank-bar').style.width = pct + '%';
     document.getElementById('plank-pct').textContent = pct + '%';
@@ -647,6 +828,7 @@
     document.getElementById('plank-manual-input').value = '';
     showToast(`Plank logged: ${formatTime(val)}`);
     updateStats();
+    updateCadenceDisplays();
   }
 
   // Push-ups
@@ -660,11 +842,21 @@
     updatePushupDisplay();
     showToast(`+${val} push-ups logged!`);
     updateStats();
+    updateCadenceDisplays();
   }
 
-  function updatePushupDisplay() {
+  function logGoalMet() {
+    const goal = computeGoal('pushup');
+    data.todayPushups += goal;
+    save();
+    logEntry('pushup', goal);
+    updatePushupDisplay();
+    showToast(`Goal met! +${goal} reps logged`);
+    updateStats();
+    updateCadenceDisplays();
+  }
     document.getElementById('pushup-count').textContent = data.todayPushups;
-    const goal = data.goals.pushup;
+    const goal = computeGoal('pushup');
     const pct = Math.min(100, Math.round((data.todayPushups / goal) * 100));
     document.getElementById('pushup-bar').style.width = pct + '%';
     document.getElementById('pushup-pct').textContent = pct + '%';
@@ -686,17 +878,7 @@
     document.getElementById('stat-best-pushup').textContent = pushups.length ? Math.max(...pushups) : '—';
   }
 
-  // Goals
-  function saveGoals() {
-    data.goals.plank = parseInt(document.getElementById('plank-goal-input').value) || 60;
-    data.goals.pushup = parseInt(document.getElementById('pushup-goal-input').value) || 50;
-    save();
-    document.getElementById('plank-goal-label').textContent = data.goals.plank + 's';
-    document.getElementById('pushup-goal-label').textContent = data.goals.pushup;
-    updatePlankProgress();
-    updatePushupDisplay();
-    showToast('Goals saved!');
-  }
+  // Goals (cadence-driven — see saveCadence above)
 
   // History render
   function renderHistory() {
@@ -745,13 +927,17 @@
   document.getElementById('pushup-input').addEventListener('keydown', e => { if (e.key === 'Enter') logPushups(); });
   document.getElementById('plank-manual-input').addEventListener('keydown', e => { if (e.key === 'Enter') logPlankManual(); });
 
-  // Init
-  document.getElementById('plank-goal-input').value = data.goals.plank;
-  document.getElementById('pushup-goal-input').value = data.goals.pushup;
-  document.getElementById('plank-goal-label').textContent = data.goals.plank + 's';
-  document.getElementById('pushup-goal-label').textContent = data.goals.pushup;
+  // Init — populate cadence inputs from saved data
+  const pc = data.cadence.plank, uc = data.cadence.pushup;
+  document.getElementById('plank-start').value  = pc.start;
+  document.getElementById('plank-every').value  = pc.every;
+  document.getElementById('plank-by').value     = pc.by;
+  document.getElementById('pushup-start').value = uc.start;
+  document.getElementById('pushup-every').value = uc.every;
+  document.getElementById('pushup-by').value    = uc.by;
   updatePushupDisplay();
   updateStats();
+  updateCadenceDisplays();
 </script>
 </body>
 </html>
