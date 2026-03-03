@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iron Core Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1f1f1f;
+    --border: #2a2a2a;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #777;
+    --plank: #4ecdc4;
+    --pushup: #ff6b6b;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  header {
+    padding: 2rem 2rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  header h1 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  header span {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: grid;
+    gap: 2rem;
+  }
+
+  /* Tab switcher */
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+
+  .tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* Exercise cards */
+  .exercise-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 600px) { .exercise-grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .card.plank::before { background: var(--plank); }
+  .card.pushup::before { background: var(--pushup); }
+
+  .card-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .card.plank .card-label { color: var(--plank); }
+  .card.pushup .card-label { color: var(--pushup); }
+
+  .card-stat {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 3.5rem;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+  }
+
+  .card-unit {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+  }
+
+  /* Timer */
+  .timer-display {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 5rem;
+    line-height: 1;
+    color: var(--plank);
+    letter-spacing: 0.05em;
+    text-align: center;
+    margin: 1rem 0;
+  }
+
+  .timer-display.running {
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Input section */
+  .input-group {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 1rem;
+  }
+
+  .number-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 1.1rem;
+    padding: 0.6rem 1rem;
+    border-radius: 2px;
+    width: 100px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .number-input:focus { border-color: var(--accent); }
+
+  /* Buttons */
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.6rem 1.2rem;
+    border: 1px solid;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: none;
+  }
+
+  .btn-accent {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .btn-accent:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .btn-plank {
+    border-color: var(--plank);
+    color: var(--plank);
+  }
+
+  .btn-plank:hover { background: var(--plank); color: var(--bg); }
+
+  .btn-pushup {
+    border-color: var(--pushup);
+    color: var(--pushup);
+  }
+
+  .btn-pushup:hover { background: var(--pushup); color: var(--bg); }
+
+  .btn-muted {
+    border-color: var(--border);
+    color: var(--muted);
+  }
+
+  .btn-muted:hover { border-color: var(--muted); color: var(--text); }
+
+  .btn-lg {
+    padding: 0.9rem 2rem;
+    font-size: 0.85rem;
+  }
+
+  /* Timer controls */
+  .timer-controls {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    background: var(--surface2);
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.75rem;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .plank .progress-bar-fill { background: var(--plank); }
+  .pushup .progress-bar-fill { background: var(--pushup); }
+
+  .progress-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* History log */
+  .history-section { display: none; }
+  .history-section.active { display: block; }
+
+  .workout-section { display: none; }
+  .workout-section.active { display: block; }
+
+  .log-entry {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .log-entry:last-child { border-bottom: none; }
+
+  .log-type {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 2px;
+  }
+
+  .log-type.plank { background: rgba(78,205,196,0.15); color: var(--plank); }
+  .log-type.pushup { background: rgba(255,107,107,0.15); color: var(--pushup); }
+
+  .log-value {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.4rem;
+    text-align: right;
+  }
+
+  .log-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .log-delete {
+    background: none;
+    border: none;
+    color: var(--border);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.2rem;
+    transition: color 0.2s;
+    line-height: 1;
+  }
+
+  .log-delete:hover { color: var(--pushup); }
+
+  .log-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+  }
+
+  .empty-state {
+    padding: 3rem;
+    text-align: center;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.2rem;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .stat-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+  }
+
+  /* Goals */
+  .goals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .goal-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .goal-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    padding: 0.75rem 1.5rem;
+    border-radius: 2px;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s forwards;
+    z-index: 100;
+  }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes toastOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(10px); }
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.5rem 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Iron Core</h1>
+  <span>Fitness Tracker</span>
+</header>
+
+<div class="app">
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('workout')">Workout</button>
+    <button class="tab" onclick="switchTab('history')">History</button>
+  </div>
+
+  <!-- WORKOUT TAB -->
+  <div class="workout-section active" id="workout-tab">
+
+    <!-- Stats row -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-total-sessions">0</div>
+        <div class="stat-lbl">Total Sessions</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-best-plank" style="color:var(--plank)">—</div>
+        <div class="stat-lbl">Best Plank</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-best-pushup" style="color:var(--pushup)">—</div>
+        <div class="stat-lbl">Best Push-ups</div>
+      </div>
+    </div>
+
+    <div class="exercise-grid">
+
+      <!-- PLANK CARD -->
+      <div class="card plank">
+        <div class="card-label">⬛ Plank Timer</div>
+        <div class="timer-display" id="timer-display">00:00</div>
+        <div class="timer-controls">
+          <button class="btn btn-plank btn-lg" id="timer-btn" onclick="toggleTimer()">Start</button>
+          <button class="btn btn-muted" onclick="resetTimer()">Reset</button>
+        </div>
+        <div style="margin-top:1.5rem">
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="plank-bar" style="width:0%"></div>
+          </div>
+          <div class="progress-label">
+            <span>Goal: <span id="plank-goal-label">60s</span></span>
+            <span id="plank-pct">0%</span>
+          </div>
+        </div>
+        <div class="input-group" style="margin-top:1.5rem">
+          <button class="btn btn-plank" onclick="logPlankManual()">Log Time</button>
+          <input type="number" class="number-input" id="plank-manual-input" placeholder="sec" min="1" max="3600" style="width:90px">
+          <span style="font-size:0.75rem;color:var(--muted)">or log manually</span>
+        </div>
+      </div>
+
+      <!-- PUSH-UPS CARD -->
+      <div class="card pushup">
+        <div class="card-label">💪 Push-ups</div>
+        <div class="card-stat" id="pushup-count">0</div>
+        <div class="card-unit">reps today</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="pushup-bar" style="width:0%"></div>
+        </div>
+        <div class="progress-label">
+          <span>Goal: <span id="pushup-goal-label">50</span></span>
+          <span id="pushup-pct">0%</span>
+        </div>
+        <div class="input-group" style="margin-top:1.5rem">
+          <input type="number" class="number-input" id="pushup-input" placeholder="reps" min="1" max="999">
+          <button class="btn btn-pushup" onclick="logPushups()">Log Set</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Goals -->
+    <div>
+      <div class="section-title">Daily Goals</div>
+      <div class="goals-grid">
+        <div class="goal-input-group">
+          <label class="goal-label" style="color:var(--plank)">Plank Goal (seconds)</label>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <input type="number" class="number-input" id="plank-goal-input" value="60" min="5" max="600" style="width:90px">
+            <button class="btn btn-muted" onclick="saveGoals()">Save</button>
+          </div>
+        </div>
+        <div class="goal-input-group">
+          <label class="goal-label" style="color:var(--pushup)">Push-up Goal (reps)</label>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <input type="number" class="number-input" id="pushup-goal-input" value="50" min="1" max="999">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div class="history-section" id="history-tab">
+    <div class="section-title">Workout History</div>
+    <div class="log-container" id="history-log">
+      <div class="empty-state" id="empty-state">No workouts logged yet. Get moving!</div>
+    </div>
+    <div style="margin-top:1rem;text-align:right">
+      <button class="btn btn-muted" onclick="clearHistory()">Clear All History</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // State
+  let timerInterval = null;
+  let timerSeconds = 0;
+  let isRunning = false;
+  let data = JSON.parse(localStorage.getItem('ironcore') || '{"log":[],"goals":{"plank":60,"pushup":50},"todayPushups":0,"todayDate":""}');
+
+  // Fix today's pushup count reset
+  const today = new Date().toDateString();
+  if (data.todayDate !== today) {
+    data.todayPushups = 0;
+    data.todayDate = today;
+    save();
+  }
+
+  function save() {
+    localStorage.setItem('ironcore', JSON.stringify(data));
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['workout','history'][i] === tab));
+    document.getElementById('workout-tab').classList.toggle('active', tab === 'workout');
+    document.getElementById('history-tab').classList.toggle('active', tab === 'history');
+    if (tab === 'history') renderHistory();
+  }
+
+  // Timer
+  function toggleTimer() {
+    if (!isRunning) {
+      isRunning = true;
+      document.getElementById('timer-btn').textContent = 'Stop';
+      document.getElementById('timer-display').classList.add('running');
+      timerInterval = setInterval(() => {
+        timerSeconds++;
+        updateTimerDisplay();
+        updatePlankProgress();
+      }, 1000);
+    } else {
+      isRunning = false;
+      clearInterval(timerInterval);
+      document.getElementById('timer-btn').textContent = 'Start';
+      document.getElementById('timer-display').classList.remove('running');
+      if (timerSeconds > 0) {
+        logEntry('plank', timerSeconds);
+        showToast(`Plank logged: ${formatTime(timerSeconds)}`);
+        updateStats();
+      }
+    }
+  }
+
+  function resetTimer() {
+    if (isRunning) { isRunning = false; clearInterval(timerInterval); document.getElementById('timer-btn').textContent = 'Start'; document.getElementById('timer-display').classList.remove('running'); }
+    timerSeconds = 0;
+    updateTimerDisplay();
+    updatePlankProgress();
+  }
+
+  function updateTimerDisplay() {
+    document.getElementById('timer-display').textContent = formatTime(timerSeconds);
+  }
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60).toString().padStart(2,'0');
+    const sec = (s % 60).toString().padStart(2,'0');
+    return `${m}:${sec}`;
+  }
+
+  function updatePlankProgress() {
+    const goal = data.goals.plank;
+    const pct = Math.min(100, Math.round((timerSeconds / goal) * 100));
+    document.getElementById('plank-bar').style.width = pct + '%';
+    document.getElementById('plank-pct').textContent = pct + '%';
+  }
+
+  function logPlankManual() {
+    const val = parseInt(document.getElementById('plank-manual-input').value);
+    if (!val || val < 1) { showToast('Enter a valid time'); return; }
+    logEntry('plank', val);
+    document.getElementById('plank-manual-input').value = '';
+    showToast(`Plank logged: ${formatTime(val)}`);
+    updateStats();
+  }
+
+  // Push-ups
+  function logPushups() {
+    const val = parseInt(document.getElementById('pushup-input').value);
+    if (!val || val < 1) { showToast('Enter valid reps'); return; }
+    data.todayPushups += val;
+    save();
+    logEntry('pushup', val);
+    document.getElementById('pushup-input').value = '';
+    updatePushupDisplay();
+    showToast(`+${val} push-ups logged!`);
+    updateStats();
+  }
+
+  function updatePushupDisplay() {
+    document.getElementById('pushup-count').textContent = data.todayPushups;
+    const goal = data.goals.pushup;
+    const pct = Math.min(100, Math.round((data.todayPushups / goal) * 100));
+    document.getElementById('pushup-bar').style.width = pct + '%';
+    document.getElementById('pushup-pct').textContent = pct + '%';
+  }
+
+  // Log entries
+  function logEntry(type, value) {
+    data.log.unshift({ type, value, date: new Date().toISOString() });
+    save();
+  }
+
+  // Stats
+  function updateStats() {
+    const log = data.log;
+    document.getElementById('stat-total-sessions').textContent = log.length;
+    const planks = log.filter(e => e.type === 'plank').map(e => e.value);
+    const pushups = log.filter(e => e.type === 'pushup').map(e => e.value);
+    document.getElementById('stat-best-plank').textContent = planks.length ? formatTime(Math.max(...planks)) : '—';
+    document.getElementById('stat-best-pushup').textContent = pushups.length ? Math.max(...pushups) : '—';
+  }
+
+  // Goals
+  function saveGoals() {
+    data.goals.plank = parseInt(document.getElementById('plank-goal-input').value) || 60;
+    data.goals.pushup = parseInt(document.getElementById('pushup-goal-input').value) || 50;
+    save();
+    document.getElementById('plank-goal-label').textContent = data.goals.plank + 's';
+    document.getElementById('pushup-goal-label').textContent = data.goals.pushup;
+    updatePlankProgress();
+    updatePushupDisplay();
+    showToast('Goals saved!');
+  }
+
+  // History render
+  function renderHistory() {
+    const log = data.log;
+    const container = document.getElementById('history-log');
+    const empty = document.getElementById('empty-state');
+    if (log.length === 0) { empty.style.display = 'block'; container.innerHTML = ''; container.appendChild(empty); return; }
+    container.innerHTML = log.map((e, i) => `
+      <div class="log-entry">
+        <span class="log-type ${e.type}">${e.type}</span>
+        <span class="log-date">${new Date(e.date).toLocaleString()}</span>
+        <span class="log-value" style="color:var(--${e.type === 'plank' ? 'plank' : 'pushup'})">${e.type === 'plank' ? formatTime(e.value) : e.value + ' reps'}</span>
+        <button class="log-delete" onclick="deleteEntry(${i})" title="Delete">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function deleteEntry(i) {
+    data.log.splice(i, 1);
+    save();
+    renderHistory();
+    updateStats();
+  }
+
+  function clearHistory() {
+    if (!confirm('Clear all history?')) return;
+    data.log = [];
+    data.todayPushups = 0;
+    save();
+    renderHistory();
+    updateStats();
+    updatePushupDisplay();
+    showToast('History cleared');
+  }
+
+  // Toast
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2000);
+  }
+
+  // Enter key support
+  document.getElementById('pushup-input').addEventListener('keydown', e => { if (e.key === 'Enter') logPushups(); });
+  document.getElementById('plank-manual-input').addEventListener('keydown', e => { if (e.key === 'Enter') logPlankManual(); });
+
+  // Init
+  document.getElementById('plank-goal-input').value = data.goals.plank;
+  document.getElementById('pushup-goal-input').value = data.goals.pushup;
+  document.getElementById('plank-goal-label').textContent = data.goals.plank + 's';
+  document.getElementById('pushup-goal-label').textContent = data.goals.pushup;
+  updatePushupDisplay();
+  updateStats();
+</script>
+</body>
+</html>
