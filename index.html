@@ -855,6 +855,8 @@
     updateStats();
     updateCadenceDisplays();
   }
+
+  function updatePushupDisplay() {
     document.getElementById('pushup-count').textContent = data.todayPushups;
     const goal = computeGoal('pushup');
     const pct = Math.min(100, Math.round((data.todayPushups / goal) * 100));
