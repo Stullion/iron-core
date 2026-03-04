@@ -772,10 +772,21 @@
     if (tab === 'history') renderHistory();
   }
 
+  // Wake Lock
+  let wakeLock = null;
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+  }
+  function releaseWakeLock() {
+    if (wakeLock) { wakeLock.release(); wakeLock = null; }
+  }
+
   // Timer
   function toggleTimer() {
     if (!isRunning) {
       isRunning = true;
+      requestWakeLock();
       document.getElementById('timer-btn').textContent = 'Stop';
       document.getElementById('timer-display').classList.add('running');
       timerInterval = setInterval(() => {
@@ -786,6 +797,7 @@
     } else {
       isRunning = false;
       clearInterval(timerInterval);
+      releaseWakeLock();
       document.getElementById('timer-btn').textContent = 'Start';
       document.getElementById('timer-display').classList.remove('running');
       if (timerSeconds > 0) {
@@ -798,7 +810,7 @@
   }
 
   function resetTimer() {
-    if (isRunning) { isRunning = false; clearInterval(timerInterval); document.getElementById('timer-btn').textContent = 'Start'; document.getElementById('timer-display').classList.remove('running'); }
+    if (isRunning) { isRunning = false; clearInterval(timerInterval); releaseWakeLock(); document.getElementById('timer-btn').textContent = 'Start'; document.getElementById('timer-display').classList.remove('running'); }
     timerSeconds = 0;
     updateTimerDisplay();
     updatePlankProgress();
